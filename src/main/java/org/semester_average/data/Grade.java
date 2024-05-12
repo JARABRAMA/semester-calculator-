@@ -1,5 +1,7 @@
 package org.semester_average.data;
 
+import java.text.MessageFormat;
+
 public class Grade {
     private String name;
     private double qualification;
@@ -9,6 +11,16 @@ public class Grade {
         this.name = name;
         this.percentage = percentage;
         this.qualification = qualification;
+    }
+
+    @Override
+    public String toString(){
+        return MessageFormat.format(
+                "{0}: qualification: {1}, percentage: {2}",
+                this.name,
+                this.qualification,
+                this.percentage
+        );
     }
 
     public String getName() {
