@@ -7,7 +7,9 @@ import org.semester_average.repository.CourseRepository;
 
 import java.sql.*;
 import java.text.MessageFormat;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.IntStream;
 
 import org.semester_average.data.Course;
 import org.semester_average.utlis.DataBaseConstants;
@@ -19,7 +21,6 @@ import static org.semester_average.utlis.SemesterConstant.*;
 public class CourseRepositoryImplDB implements CourseRepository {
     private final String TABLE;
     private Statement statement;
-    private Connection connection;
     private static final Logger log = LogManager.getLogger(CourseRepositoryImplDB.class);
     private double restPercentage = maxPercentage;
 
@@ -27,7 +28,7 @@ public class CourseRepositoryImplDB implements CourseRepository {
         this.TABLE = course.getName().replace(" ", "_");
         try {
             Class.forName(DataBaseConstants.DRIVER);
-            connection = DriverManager.getConnection(
+            Connection connection = DriverManager.getConnection(
                     DataBaseConstants.URL + DB,
                     DataBaseConstants.USER,
                     DataBaseConstants.PASSWORD
@@ -35,12 +36,13 @@ public class CourseRepositoryImplDB implements CourseRepository {
             statement = connection.createStatement();
             log.info(MessageFormat.format("database {0} connected", DB));
         } catch (SQLException | ClassNotFoundException e) {
-            log.error("constructor: " + e.getMessage());
+            log.error("constructor: {}", e.getMessage());
         }
+        restPercentage -= getPartialPercentage();
     }
 
     @Override
-    public double getPercentage() {
+    public double getPartialPercentage() {
         var query = MessageFormat.format(
                 "SELECT SUM(percentage) AS total_percentage FROM {0}.{1}",
                 DB,
@@ -84,8 +86,8 @@ public class CourseRepositoryImplDB implements CourseRepository {
             log.error("the qualification is out of the let limit");
             return null;
         }
-        if (grade.getPercentage() > maxPercentage || grade.getPercentage() < minPercentage) {
-            log.error("the percentage is out of the let limit");
+        if (grade.getPercentage() > restPercentage || grade.getPercentage() < minPercentage) {
+            log.error("the percentage is out of the let limit - resting percentage = {}", restPercentage);
             return null;
         }
         var query = MessageFormat.format(
@@ -147,7 +149,7 @@ public class CourseRepositoryImplDB implements CourseRepository {
                 return null;
             }
             statement.executeUpdate(query);
-
+            restPercentage += grade.getPercentage();
             var orderQuery = MessageFormat.format(
                     "SET @idx = 0;\n" +
                             "UPDATE {0}.{1} SET idx = (@idx:=@idx+1) ORDER BY idx;",
@@ -164,13 +166,65 @@ public class CourseRepositoryImplDB implements CourseRepository {
         return null;
     }
 
+
     @Override
     public double getAverage() {
+        List<Double> percentages = getPercentages();
+        List<Double> qualifications = getQualifications();
+        if (!percentages.isEmpty() || !qualifications.isEmpty()) {
+            return IntStream.range(0, percentages.size()).mapToDouble(i -> percentages.get(i) * qualifications.get(i) * 0.01).sum();
+        }
         return 0;
     }
 
+
+    private List<Double> getQualifications() {
+        try {
+            var resultSet = statement.executeQuery(
+                    MessageFormat.format(
+                            "SELECT qualification FROM {0}.{1};",
+                            DB, TABLE
+                    )
+            );
+            List<Double> qualifications = new ArrayList<>();
+            while (resultSet.next()) {
+                qualifications.add(resultSet.getDouble("qualification"));
+            }
+            return qualifications;
+        } catch (SQLException e) {
+            log.error("getQualifications: {}", e.getMessage());
+        }
+        return List.of();
+    }
+
+    private List<Double> getPercentages() {
+        try {
+            var resultSet = statement.executeQuery(MessageFormat.format(
+                    "SELECT percentage FROM {0}.{1}",
+                    DB, TABLE
+            ));
+            List<Double> percentages = new ArrayList<>();
+            while (resultSet.next()) {
+                percentages.add(resultSet.getDouble("percentage"));
+            }
+            return percentages;
+        } catch (SQLException e) {
+            log.error("getPercentages: {}", e.getMessage());
+        }
+        return List.of();
+    }
+
     @Override
-    public String getAdvice() {
-        return "";
+    public String getAdvice(double goal) {
+        double neededQualification = (goal - getAverage()) * 100 * (1 / (100 - getPartialPercentage()));
+        log.info("needed qualification: {}", neededQualification);
+        if (getAverage() >= goal) {
+            return "Great, you already have reached your goal";
+        } else if (neededQualification > maxQualification) {
+            return "Oh, now is impossible reach your goal, the needed qualification is bigger than the max possible qualification";
+        } else {
+            return MessageFormat.format("The qualification you need at the resting {0} percent is {1}",
+                    (100 - getPartialPercentage()), neededQualification);
+        }
     }
 }

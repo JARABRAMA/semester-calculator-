@@ -8,6 +8,6 @@ public interface CourseRepository {
     Grade save(Grade grade);
     Grade remove(int index);
     double getAverage();
-    String getAdvice();
-    double getPercentage(); // returns actual percentage expensed
+    String getAdvice(double goal);
+    double getPartialPercentage(); // returns actual percentage expensed
 }

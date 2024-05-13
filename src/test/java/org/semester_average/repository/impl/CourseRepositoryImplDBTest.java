@@ -8,7 +8,6 @@ import org.semester_average.data.Course;
 import org.semester_average.data.Grade;
 
 import java.util.List;
-
 import static org.junit.jupiter.api.Assertions.*;
 
 class CourseRepositoryImplDBTest {
@@ -41,11 +40,18 @@ class CourseRepositoryImplDBTest {
     }
 
     @Test
-    void savin_invalid_qualification() {
+    void saving_invalid_qualification() {
         var grade = new Grade("taller 1", 5.6, 20);
         var result = courseRepository.save(grade);
         assertNull(result);
 
+    }
+
+    @Test
+    void saving_invalid_percentage(){
+        var grade = new Grade("INVALID", 0, 90);
+        var result = courseRepository.save(grade);
+        assertNull(result);
     }
 
     @Test
@@ -58,7 +64,7 @@ class CourseRepositoryImplDBTest {
 
     @Test
     void getPercentage(){
-        var totalPercentage = courseRepository.getPercentage();
+        var totalPercentage = courseRepository.getPartialPercentage();
         log.info("total percentage: {}", totalPercentage);
     }
 
@@ -67,5 +73,17 @@ class CourseRepositoryImplDBTest {
         var grade = courseRepository.remove(1);
         log.info(grade);
         assertNotNull(grade);
+    }
+
+    @Test
+    void getAverage(){
+        var average  = courseRepository.getAverage();
+        log.info("average: {}", average);
+        assertNotEquals(average, 0);
+    }
+
+    @Test
+    void getAdvise(){
+        log.info(courseRepository.getAdvice(4.5));
     }
 }
