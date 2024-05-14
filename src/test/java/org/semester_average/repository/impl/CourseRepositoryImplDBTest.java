@@ -21,7 +21,7 @@ class CourseRepositoryImplDBTest {
                     new Grade("partial 1", 4.8, 25.0)
             )
     );
-    private final CourseRepositoryImplDB courseRepository = new CourseRepositoryImplDB(course);
+    private final CourseRepositoryImplDB courseRepository = new CourseRepositoryImplDB("math");
 
 
     @Test

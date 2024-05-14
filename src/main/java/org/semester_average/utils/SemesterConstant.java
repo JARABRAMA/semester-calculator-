@@ -1,4 +1,4 @@
-package org.semester_average.utlis;
+package org.semester_average.utils;
 
 public class SemesterConstant {
     public static double maxQualification = 5;

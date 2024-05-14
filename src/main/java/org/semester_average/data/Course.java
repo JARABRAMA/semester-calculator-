@@ -1,6 +1,8 @@
 package org.semester_average.data;
 
+import java.text.MessageFormat;
 import java.util.List;
+import java.util.stream.Stream;
 
 public class Course {
     private int credits;
@@ -11,6 +13,16 @@ public class Course {
         this.credits = credits;
         this.name = name;
         this.grades = grades;
+    }
+
+    @Override
+    public String toString() {
+        var message = new StringBuilder(MessageFormat.format(
+                "\n{0}: credits = {1}, grades -> ",
+                name, credits
+        ));
+        grades.forEach(p -> message.append("\n").append(p.toString()));
+        return message.toString();
     }
 
     public void setCredits(int credits) {
